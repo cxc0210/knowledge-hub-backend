@@ -68,7 +68,7 @@ class Document(Base):
         server_default=text("0"),
     )
     publish_time: Mapped[datetime | None] = mapped_column(
-        DateTime,
+        DateTime(timezone=True),
         nullable=True,
     )
     is_public: Mapped[bool] = mapped_column(
@@ -77,12 +77,12 @@ class Document(Base):
         server_default=text("false"),
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime,
+        DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime,
+        DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
         onupdate=func.now(),

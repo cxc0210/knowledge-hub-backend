@@ -2,12 +2,16 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
+from config import settings
 from database import engine
 from mongodb import mongo_client, mongo_database
+from routers.auth import router as auth_router
 from routers.document import router as document_router
 from routers.document_content import router as document_content_router
+from routers.user import router as user_router
 
 # log格式设置
 logging.basicConfig(
@@ -41,8 +45,19 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+if settings.cors_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+app.include_router(auth_router)
 app.include_router(document_router)
 app.include_router(document_content_router)
+app.include_router(user_router)
 
 
 @app.get("/")

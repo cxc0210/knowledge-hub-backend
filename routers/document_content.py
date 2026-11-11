@@ -1,5 +1,7 @@
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 
+from dependencies.permission import require_permission
+from enums.permission import PermissionCode
 from mongodb import MongoDatabase
 from schemas.document_content import (
     DocumentContentCreate,
@@ -11,7 +13,13 @@ from services.document_content import (
     InvalidDocumentContentIdError,
 )
 
-router = APIRouter(prefix="/document-contents", tags=["document-contents"])
+router = APIRouter(
+    prefix="/document-contents",
+    tags=["document-contents"],
+    dependencies=[
+        Depends(require_permission(PermissionCode.DOCUMENT_MANAGE)),
+    ],
+)
 
 
 @router.post(

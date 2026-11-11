@@ -9,15 +9,10 @@ class DocumentCreate(BaseModel):
     summary: str | None = None
     category_id: int | None = None
     team_id: int | None = None
-    author_id: int | None = None
     cover_image: str | None = None
     tags: str | None = None
-    status: int = 0
     remark: str | None = None
     word_count: int = Field(default=0, ge=0)
-    publish_time: datetime | None = None
-    is_public: bool = False
-    create_by: int | None = None
 
     model_config = ConfigDict(str_strip_whitespace=True)
 
