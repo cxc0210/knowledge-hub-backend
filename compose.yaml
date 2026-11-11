@@ -1,0 +1,59 @@
+name: knowledge-hub
+
+services:
+  postgres:
+    image: pgvector/pgvector:0.8.7-pg17-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-knowledge_hub}
+      POSTGRES_USER: ${POSTGRES_USER:-knowledge_hub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-knowledge_hub_dev}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - type: bind
+        source: /Users/andrechen/Desktop/Andre/playground/knowledge-hub-playground/postgresql/data
+        target: /var/lib/postgresql/data
+        bind:
+          create_host_path: true
+      - type: bind
+        source: ./docker/postgres/init/01-enable-vector.sql
+        target: /docker-entrypoint-initdb.d/01-enable-vector.sql
+        read_only: true
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"'
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  mongodb:
+    image: mongo:8.0
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-knowledge_hub}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-knowledge_hub_dev}
+      MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE:-knowledge_hub}
+    ports:
+      - "${MONGODB_PORT:-27017}:27017"
+    volumes:
+      - type: bind
+        source: /Users/andrechen/Desktop/Andre/playground/knowledge-hub-playground/mongodb/data
+        target: /data/db
+        bind:
+          create_host_path: true
+      - type: bind
+        source: /Users/andrechen/Desktop/Andre/playground/knowledge-hub-playground/mongodb/configdb
+        target: /data/configdb
+        bind:
+          create_host_path: true
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'mongosh --quiet --username "$${MONGO_INITDB_ROOT_USERNAME}" --password "$${MONGO_INITDB_ROOT_PASSWORD}" --authenticationDatabase admin --eval "quit(db.adminCommand(''ping'').ok ? 0 : 2)"'
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
