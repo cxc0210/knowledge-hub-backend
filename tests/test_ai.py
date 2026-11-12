@@ -29,3 +29,58 @@ class AIServiceTests(IsolatedAsyncioTestCase):
             result = await AIService.chat("问题")
 
         self.assertEqual(result.answer, "答案")
+
+    async def test_streams_model_tokens_as_sse_events(self) -> None:
+        async def fake_stream(*args, **kwargs):
+            self.assertEqual(args, ({"prompt": "问题"},))
+            self.assertEqual(kwargs["stream_mode"], "messages")
+            self.assertEqual(kwargs["version"], "v2")
+            yield {
+                "type": "messages",
+                "data": (
+                    SimpleNamespace(text="你"),
+                    {"langgraph_node": "call_model"},
+                ),
+            }
+            yield {
+                "type": "messages",
+                "data": (
+                    SimpleNamespace(text="好"),
+                    {"langgraph_node": "call_model"},
+                ),
+            }
+
+        with (
+            patch("services.ai.get_chat_model"),
+            patch.object(ai_graph, "astream", new=fake_stream),
+        ):
+            events = [event async for event in AIService.stream_chat("问题")]
+
+        self.assertEqual(
+            events,
+            [
+                'event: token\ndata: {"content":"你"}\n\n',
+                'event: token\ndata: {"content":"好"}\n\n',
+                "event: done\ndata: {}\n\n",
+            ],
+        )
+
+    async def test_streams_safe_error_event_when_model_fails(self) -> None:
+        async def failing_stream(*args, **kwargs):
+            if False:
+                yield None
+            raise RuntimeError("provider secret error")
+
+        with (
+            patch("services.ai.get_chat_model"),
+            patch.object(ai_graph, "astream", new=failing_stream),
+            self.assertLogs("services.ai", level="ERROR"),
+        ):
+            events = [event async for event in AIService.stream_chat("问题")]
+
+        self.assertEqual(
+            events,
+            [
+                'event: error\ndata: {"message":"模型调用失败，请稍后重试"}\n\n',
+            ],
+        )

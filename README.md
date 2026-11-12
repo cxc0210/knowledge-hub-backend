@@ -34,6 +34,15 @@ LLM_BASE_URL=https://your-provider.example/v1
 
 接口只把 `prompt` 发给模型，并返回 `{"answer": "..."}`，不会查询数据库、向量库或 Elasticsearch。
 
+流式问答使用 `POST /ai/chat/stream`，请求体相同，响应类型为 `text/event-stream`。可以使用下面的命令验证 Token 是否逐步返回：
+
+```bash
+curl -N -X POST 'http://127.0.0.1:8000/ai/chat/stream' \
+  -H 'Content-Type: application/json' \
+  -b 'kh_access_token=your-token' \
+  -d '{"prompt":"请介绍一下 LangGraph"}'
+```
+
 ## 文档发布与索引
 
 调用 `POST /documents/{document_id}/publish` 后，接口立即返回 `202`，文档状态变为 `INDEXING(45)`，进程内后台 worker 随后执行：
