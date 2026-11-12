@@ -52,6 +52,13 @@ class AIServiceTests(IsolatedAsyncioTestCase):
 
         with (
             patch("services.ai.get_chat_model"),
+            patch(
+                "services.ai.uuid4",
+                side_effect=[
+                    SimpleNamespace(hex="message-id"),
+                    SimpleNamespace(hex="text-id"),
+                ],
+            ),
             patch.object(ai_graph, "astream", new=fake_stream),
         ):
             events = [event async for event in AIService.stream_chat("问题")]
@@ -59,9 +66,13 @@ class AIServiceTests(IsolatedAsyncioTestCase):
         self.assertEqual(
             events,
             [
-                'event: token\ndata: {"content":"你"}\n\n',
-                'event: token\ndata: {"content":"好"}\n\n',
-                "event: done\ndata: {}\n\n",
+                'data: {"type":"start","messageId":"msg_message-id"}\n\n',
+                'data: {"type":"text-start","id":"text_text-id"}\n\n',
+                'data: {"type":"text-delta","id":"text_text-id","delta":"你"}\n\n',
+                'data: {"type":"text-delta","id":"text_text-id","delta":"好"}\n\n',
+                'data: {"type":"text-end","id":"text_text-id"}\n\n',
+                'data: {"type":"finish","finishReason":"stop"}\n\n',
+                "data: [DONE]\n\n",
             ],
         )
 
@@ -73,6 +84,13 @@ class AIServiceTests(IsolatedAsyncioTestCase):
 
         with (
             patch("services.ai.get_chat_model"),
+            patch(
+                "services.ai.uuid4",
+                side_effect=[
+                    SimpleNamespace(hex="message-id"),
+                    SimpleNamespace(hex="text-id"),
+                ],
+            ),
             patch.object(ai_graph, "astream", new=failing_stream),
             self.assertLogs("services.ai", level="ERROR"),
         ):
@@ -81,6 +99,11 @@ class AIServiceTests(IsolatedAsyncioTestCase):
         self.assertEqual(
             events,
             [
-                'event: error\ndata: {"message":"模型调用失败，请稍后重试"}\n\n',
+                'data: {"type":"start","messageId":"msg_message-id"}\n\n',
+                'data: {"type":"text-start","id":"text_text-id"}\n\n',
+                'data: {"type":"error","errorText":"模型调用失败，请稍后重试"}\n\n',
+                'data: {"type":"text-end","id":"text_text-id"}\n\n',
+                'data: {"type":"finish","finishReason":"error"}\n\n',
+                "data: [DONE]\n\n",
             ],
         )

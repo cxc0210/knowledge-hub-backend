@@ -34,7 +34,7 @@ LLM_BASE_URL=https://your-provider.example/v1
 
 接口只把 `prompt` 发给模型，并返回 `{"answer": "..."}`，不会查询数据库、向量库或 Elasticsearch。
 
-流式问答使用 `POST /ai/chat/stream`，请求体相同，响应类型为 `text/event-stream`。可以使用下面的命令验证 Token 是否逐步返回：
+流式问答使用 `POST /ai/chat/stream`，请求体相同，响应类型为 `text/event-stream`，并遵循 Vercel AI SDK UI Message Stream v1 协议。可以使用下面的命令验证 Token 是否逐步返回：
 
 ```bash
 curl -N -X POST 'http://127.0.0.1:8000/ai/chat/stream' \

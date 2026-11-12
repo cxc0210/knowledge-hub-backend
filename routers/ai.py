@@ -42,5 +42,6 @@ async def stream_chat(
         headers={
             "Cache-Control": "no-cache, no-transform",
             "X-Accel-Buffering": "no",
+            "X-Vercel-AI-UI-Message-Stream": "v1",
         },
     )

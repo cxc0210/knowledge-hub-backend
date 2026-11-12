@@ -3,6 +3,7 @@ import json
 import logging
 from collections.abc import AsyncIterator, Mapping
 from typing import Any
+from uuid import uuid4
 
 from core.llm import get_chat_model
 from graphs.ai import ai_graph
@@ -11,9 +12,13 @@ from schemas.ai import AIChatResponse
 logger = logging.getLogger(__name__)
 
 
-def _sse_event(event: str, data: Mapping[str, Any]) -> str:
+def _ui_message_chunk(data: Mapping[str, Any]) -> str:
     payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
-    return f"event: {event}\ndata: {payload}\n\n"
+    return f"data: {payload}\n\n"
+
+
+def _ui_message_done() -> str:
+    return "data: [DONE]\n\n"
 
 
 class AIService:
@@ -29,6 +34,11 @@ class AIService:
 
     @staticmethod
     async def _stream_chat(prompt: str) -> AsyncIterator[str]:
+        message_id = f"msg_{uuid4().hex}"
+        text_id = f"text_{uuid4().hex}"
+        yield _ui_message_chunk({"type": "start", "messageId": message_id})
+        yield _ui_message_chunk({"type": "text-start", "id": text_id})
+
         try:
             async for part in ai_graph.astream(
                 {"prompt": prompt},
@@ -44,14 +54,31 @@ class AIService:
 
                 content = message.text
                 if content:
-                    yield _sse_event("token", {"content": content})
+                    yield _ui_message_chunk(
+                        {
+                            "type": "text-delta",
+                            "id": text_id,
+                            "delta": content,
+                        }
+                    )
 
-            yield _sse_event("done", {})
+            yield _ui_message_chunk({"type": "text-end", "id": text_id})
+            yield _ui_message_chunk(
+                {"type": "finish", "finishReason": "stop"}
+            )
+            yield _ui_message_done()
         except asyncio.CancelledError:
             raise
         except Exception:
             logger.exception("AI streaming request failed")
-            yield _sse_event(
-                "error",
-                {"message": "模型调用失败，请稍后重试"},
+            yield _ui_message_chunk(
+                {
+                    "type": "error",
+                    "errorText": "模型调用失败，请稍后重试",
+                }
             )
+            yield _ui_message_chunk({"type": "text-end", "id": text_id})
+            yield _ui_message_chunk(
+                {"type": "finish", "finishReason": "error"}
+            )
+            yield _ui_message_done()
