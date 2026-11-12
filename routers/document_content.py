@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
+from core.mongodb import MongoDatabase
 from dependencies.permission import require_permission
 from enums.permission import PermissionCode
-from mongodb import MongoDatabase
 from schemas.document_content import (
     DocumentContentCreate,
     DocumentContentResponse,

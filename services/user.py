@@ -1,11 +1,11 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from core.security import hash_password
 from models.user import User
 from schemas.user import UserCreate
-from security import hash_password
 
 
 class UserAlreadyExistsError(Exception):
@@ -13,6 +13,27 @@ class UserAlreadyExistsError(Exception):
 
 
 class UserService:
+    @staticmethod
+    async def list(
+        session: AsyncSession,
+        page: int,
+        size: int,
+    ) -> tuple[list[User], int]:
+        filters = (User.deleted.is_(False),)
+        total = await session.scalar(
+            select(func.count(User.id)).where(*filters),
+        )
+        result = await session.scalars(
+            select(User)
+            .options(selectinload(User.role))
+            .where(*filters)
+            .order_by(User.id.asc())
+            .offset((page - 1) * size)
+            .limit(size),
+        )
+
+        return list(result.all()), total or 0
+
     @staticmethod
     async def create(session: AsyncSession, user_create: UserCreate) -> User:
         user = User(
@@ -42,9 +63,7 @@ class UserService:
             raise
 
         created_user = await session.scalar(
-            select(User)
-            .options(selectinload(User.role))
-            .where(User.id == user.id)
+            select(User).options(selectinload(User.role)).where(User.id == user.id)
         )
         if created_user is None:
             raise RuntimeError("created user could not be loaded")

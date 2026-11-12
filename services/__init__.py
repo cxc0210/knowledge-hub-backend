@@ -1,8 +1,8 @@
 from services.auth import AuthService, InvalidCredentialsError, UserDisabledError
 from services.document import (
-    DocumentAlreadyExistsError,
-    DocumentForbiddenError,
+    DocumentFileSizeMismatchError,
     DocumentNotFoundError,
+    DocumentObjectNotFoundError,
     DocumentService,
 )
 from services.document_content import (
@@ -14,14 +14,14 @@ from services.user import UserAlreadyExistsError, UserService
 
 __all__ = [
     "AuthService",
-    "DocumentAlreadyExistsError",
     "DocumentContentNotFoundError",
     "DocumentContentService",
-    "DocumentForbiddenError",
+    "DocumentFileSizeMismatchError",
     "DocumentNotFoundError",
+    "DocumentObjectNotFoundError",
     "DocumentService",
-    "InvalidDocumentContentIdError",
     "InvalidCredentialsError",
+    "InvalidDocumentContentIdError",
     "UserAlreadyExistsError",
     "UserDisabledError",
     "UserService",

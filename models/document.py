@@ -14,13 +14,14 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
-from database import Base
+from core.database import Base
 
 
 class Document(Base):
     __tablename__ = "kh_document"
     __table_args__ = (
         UniqueConstraint("content_id", name="uq_kh_document_content_id"),
+        UniqueConstraint("object_key", name="uq_kh_document_object_key"),
     )
 
     id: Mapped[int] = mapped_column(
@@ -29,7 +30,12 @@ class Document(Base):
         primary_key=True,
     )
     title: Mapped[str] = mapped_column(String, nullable=False)
-    content_id: Mapped[str] = mapped_column(String, nullable=False)
+    content_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    object_key: Mapped[str] = mapped_column(String(1024), nullable=False)
+    file_name: Mapped[str] = mapped_column(String(512), nullable=False)
+    content_type: Mapped[str] = mapped_column(String(255), nullable=False)
+    file_size: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    etag: Mapped[str | None] = mapped_column(String(255), nullable=True)
     summary: Mapped[str | None] = mapped_column(String, nullable=True)
     category_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     team_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)

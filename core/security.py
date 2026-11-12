@@ -4,8 +4,7 @@ import jwt
 from jwt.exceptions import InvalidTokenError
 from pwdlib import PasswordHash
 
-from config import settings
-
+from core.config import settings
 
 password_hash = PasswordHash.recommended()
 JWT_ALGORITHM = "HS256"

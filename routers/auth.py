@@ -1,13 +1,12 @@
 from fastapi import APIRouter, HTTPException, Response, status
 
-from config import settings
-from database import DatabaseSession
+from core.config import settings
+from core.database import DatabaseSession
+from core.security import create_access_token
 from dependencies.auth import CurrentUser
 from schemas.auth import LoginRequest
 from schemas.user import UserResponse
-from security import create_access_token
 from services.auth import AuthService, InvalidCredentialsError, UserDisabledError
-
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

@@ -2,6 +2,7 @@ from enum import IntEnum
 
 
 class DocumentStatus(IntEnum):
+    PENDING_UPLOAD = 0
     UPLOADED = 10
 
     PARSING = 20
@@ -11,6 +12,9 @@ class DocumentStatus(IntEnum):
 
     PENDING_REVIEW = 40
     REJECTED = 41
+
+    INDEXING = 45
+    INDEX_FAILED = 46
 
     PUBLISHED = 50
     UNPUBLISHED = 51

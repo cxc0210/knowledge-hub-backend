@@ -4,12 +4,11 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from core.security import hash_password, verify_password
 from enums.user import UserStatus
 from models.role import Role
 from models.user import User
 from schemas.auth import LoginRequest
-from security import hash_password, verify_password
-
 
 _DUMMY_PASSWORD_HASH = hash_password("dummy-password-for-timing-protection")
 
@@ -44,9 +43,7 @@ class AuthService:
         )
 
         password = login_request.password.get_secret_value()
-        stored_password_hash = (
-            user.password_hash if user else _DUMMY_PASSWORD_HASH
-        )
+        stored_password_hash = user.password_hash if user else _DUMMY_PASSWORD_HASH
         password_matches = verify_password(password, stored_password_hash)
 
         if user is None or not password_matches:
@@ -57,4 +54,5 @@ class AuthService:
 
         user.last_login_at = datetime.now(UTC)
         await session.commit()
+        await session.refresh(user, attribute_names=["updated_at"])
         return user

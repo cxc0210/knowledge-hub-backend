@@ -5,13 +5,12 @@ from fastapi.security import APIKeyCookie
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from config import settings
-from database import DatabaseSession
+from core.config import settings
+from core.database import DatabaseSession
+from core.security import InvalidAccessTokenError, decode_access_token
 from enums.user import UserStatus
 from models.role import Role
 from models.user import User
-from security import InvalidAccessTokenError, decode_access_token
-
 
 access_token_cookie = APIKeyCookie(
     name=settings.auth_cookie_name,

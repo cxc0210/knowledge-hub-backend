@@ -3,12 +3,38 @@ name = "knowledge-hub-backend"
 version = "0.1.0"
 requires-python = ">=3.14"
 dependencies = [
+    "aiobotocore>=3.10.0",
     "alembic>=1.20.1",
     "asyncpg>=0.32.0",
+    "elasticsearch[async]>=9,<10",
     "fastapi[standard]>=0.162.2",
+    "httpx>=0.28.1",
+    "langchain-openai>=1.0.1",
+    "langgraph>=1.0.0",
+    "pgvector>=0.5.1",
     "pwdlib[argon2]>=0.3.1",
     "pydantic-settings>=2.16.2",
     "pyjwt>=2.15.1",
     "pymongo>=4.19.0",
     "sqlalchemy[asyncio]>=2.1.8",
 ]
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.414",
+    "pytest>=9.2.0",
+    "ruff>=0.17.4",
+    "types-aiobotocore[s3]>=3.10.0",
+]
+
+[tool.ruff]
+extend-exclude = ["migrations/versions"]
+
+[tool.pyright]
+exclude = ["migrations/versions"]
+pythonVersion = "3.14"
+venv = ".venv"
+venvPath = "."
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

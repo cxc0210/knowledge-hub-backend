@@ -10,7 +10,6 @@ from pydantic import (
     StringConstraints,
 )
 
-
 Username = Annotated[
     str,
     StringConstraints(
@@ -51,3 +50,11 @@ class UserResponse(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class UserListResponse(BaseModel):
+    items: list[UserResponse]
+    page: int = Field(ge=1)
+    size: int = Field(ge=1)
+    total: int = Field(ge=0)
+    pages: int = Field(ge=0)

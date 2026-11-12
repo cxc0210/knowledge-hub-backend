@@ -7,7 +7,6 @@ from dependencies.auth import CurrentUser
 from enums.permission import PermissionCode
 from models.user import User
 
-
 PermissionChecker = Callable[..., Coroutine[Any, Any, User]]
 
 

@@ -1,12 +1,26 @@
+import logging
 from typing import Annotated, Any
 
-from fastapi import Depends, Request
+from fastapi import Depends, FastAPI, Request
 from pymongo import AsyncMongoClient
 from pymongo.asynchronous.database import AsyncDatabase
 
-from config import settings
+from core.config import settings
 
 MongoDocument = dict[str, Any]
+
+logger = logging.getLogger(__name__)
+
+
+async def init_mongodb(app: FastAPI) -> None:
+    app.state.mongo_database = mongo_database
+    await mongo_database.command("ping")
+    logger.info("MongoDB connection successful")
+
+
+async def close_mongodb() -> None:
+    await mongo_client.close()
+    logger.info("Database connections closed")
 
 
 def get_mongodb(

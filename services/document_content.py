@@ -4,7 +4,7 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from pymongo.asynchronous.database import AsyncDatabase
 
-from mongodb import MongoDocument
+from core.mongodb import MongoDocument
 from schemas.document_content import (
     DocumentContentCreate,
     DocumentContentResponse,
