@@ -16,6 +16,7 @@ from core.llm import LLMConfigurationError
 from core.security import InvalidAccessTokenError, decode_access_token
 from dependencies.auth import CurrentUser
 from enums.user import UserStatus
+from graphs.context import AgentContext
 from models.user import User
 from schemas.ai import AIChatRequest, AIChatResponse
 from services.ai import AIService
@@ -33,7 +34,10 @@ async def chat(
     current_user: CurrentUser,
 ) -> AIChatResponse:
     try:
-        return await AIService.chat(request.prompt)
+        return await AIService.chat(
+            request.prompt,
+            _agent_context(current_user),
+        )
     except LLMConfigurationError as error:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -54,7 +58,11 @@ async def stream_chat(
         )
 
     try:
-        stream = AIService.stream_chat(request.prompt, speech_session)
+        stream = AIService.stream_chat(
+            request.prompt,
+            _agent_context(current_user),
+            speech_session,
+        )
     except LLMConfigurationError as error:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -108,6 +116,15 @@ def _websocket_origin_allowed(websocket: WebSocket) -> bool:
     allowed_origins = set(settings.cors_origins)
     origin = websocket.headers.get("origin")
     return not allowed_origins or origin is None or origin in allowed_origins
+
+
+def _agent_context(current_user: User) -> AgentContext:
+    return AgentContext(
+        user_id=current_user.id,
+        permission_codes=frozenset(
+            permission.code for permission in current_user.role.permissions
+        ),
+    )
 
 
 async def _authenticate_websocket(websocket: WebSocket) -> int | None:

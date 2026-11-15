@@ -6,8 +6,11 @@ from contextlib import suppress
 from typing import Any
 from uuid import uuid4
 
+from langchain_core.messages import HumanMessage
+
 from core.llm import get_chat_model
 from graphs.ai import ai_graph
+from graphs.context import AgentContext
 from schemas.ai import AIChatResponse
 from services.tts_session import SpeechStreamSession
 
@@ -25,21 +28,26 @@ def _ui_message_done() -> str:
 
 class AIService:
     @staticmethod
-    async def chat(prompt: str) -> AIChatResponse:
-        result = await ai_graph.ainvoke({"prompt": prompt})
-        return AIChatResponse(answer=result["answer"])
+    async def chat(prompt: str, agent_context: AgentContext) -> AIChatResponse:
+        result = await ai_graph.ainvoke(
+            {"messages": [HumanMessage(content=prompt)]},
+            context=agent_context,
+        )
+        return AIChatResponse(answer=result["messages"][-1].text)
 
     @staticmethod
     def stream_chat(
         prompt: str,
+        agent_context: AgentContext,
         speech_session: SpeechStreamSession | None = None,
     ) -> AsyncIterator[str]:
         get_chat_model()
-        return AIService._stream_chat(prompt, speech_session)
+        return AIService._stream_chat(prompt, agent_context, speech_session)
 
     @staticmethod
     async def _stream_chat(
         prompt: str,
+        agent_context: AgentContext,
         speech_session: SpeechStreamSession | None,
     ) -> AsyncIterator[str]:
         active_speech_session = speech_session
@@ -50,10 +58,28 @@ class AIService:
 
         try:
             async for part in ai_graph.astream(
-                {"prompt": prompt},
-                stream_mode="messages",
+                {"messages": [HumanMessage(content=prompt)]},
+                context=agent_context,
+                stream_mode=["messages", "custom"],
                 version="v2",
             ):
+                if part["type"] == "custom":
+                    custom_event = part["data"]
+                    if (
+                        isinstance(custom_event, dict)
+                        and custom_event.get("type") == "email-approval"
+                        and isinstance(custom_event.get("data"), dict)
+                    ):
+                        action_data = custom_event["data"]
+                        yield _ui_message_chunk(
+                            {
+                                "type": "data-email-approval",
+                                "id": action_data.get("id"),
+                                "data": action_data,
+                            }
+                        )
+                    continue
+
                 if part["type"] != "messages":
                     continue
 

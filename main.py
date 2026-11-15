@@ -13,6 +13,7 @@ from core.embedding import close_embedding, init_embedding
 from core.mongodb import close_mongodb, init_mongodb
 from core.rustfs import close_rustfs, init_rustfs
 from routers.ai import router as ai_router
+from routers.ai_action import router as ai_action_router
 from routers.auth import router as auth_router
 from routers.document import router as document_router
 from routers.document_content import router as document_content_router
@@ -84,6 +85,7 @@ if settings.cors_origins:
 
 app.include_router(auth_router)
 app.include_router(ai_router)
+app.include_router(ai_action_router)
 app.include_router(document_router)
 app.include_router(document_content_router)
 app.include_router(search_router)

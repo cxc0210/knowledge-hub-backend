@@ -1,3 +1,4 @@
+from models.ai_action import AIAction
 from models.document import Document
 from models.document_chunk import DocumentChunk
 from models.document_index_job import DocumentIndexJob
@@ -5,6 +6,7 @@ from models.role import Permission, Role, role_permission_table
 from models.user import User
 
 __all__ = [
+    "AIAction",
     "Document",
     "DocumentChunk",
     "DocumentIndexJob",

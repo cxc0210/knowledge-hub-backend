@@ -40,6 +40,15 @@ class Settings(BaseSettings):
     dashscope_tts_rate: float = 1.0
     dashscope_tts_pitch: float = 1.0
     dashscope_tts_connect_timeout_seconds: float = 10
+    ai_action_expire_minutes: int = 30
+    smtp_host: str = "127.0.0.1"
+    smtp_port: int = 1025
+    smtp_username: str = ""
+    smtp_password: SecretStr = SecretStr("")
+    smtp_from_email: str = "knowledge-hub@localhost"
+    smtp_use_tls: bool = False
+    smtp_start_tls: bool = False
+    smtp_timeout_seconds: float = 30
     rustfs_endpoint: str
     rustfs_access_key: SecretStr
     rustfs_secret_key: SecretStr
