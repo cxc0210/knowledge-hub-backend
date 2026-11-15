@@ -17,6 +17,7 @@ dependencies = [
     "pyjwt>=2.15.1",
     "pymongo>=4.19.0",
     "sqlalchemy[asyncio]>=2.1.8",
+    "websockets>=17,<18",
 ]
 
 [dependency-groups]

@@ -1112,6 +1112,7 @@ dependencies = [
     { name = "pyjwt" },
     { name = "pymongo" },
     { name = "sqlalchemy", extra = ["asyncio"] },
+    { name = "websockets" },
 ]
 
 [package.dev-dependencies]
@@ -1138,6 +1139,7 @@ requires-dist = [
     { name = "pyjwt", specifier = ">=2.15.1" },
     { name = "pymongo", specifier = ">=4.19.0" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.1.8" },
+    { name = "websockets", specifier = ">=17,<18" },
 ]
 
 [package.metadata.requires-dev]

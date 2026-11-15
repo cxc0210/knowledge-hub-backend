@@ -76,6 +76,39 @@ class AIServiceTests(IsolatedAsyncioTestCase):
             ],
         )
 
+    async def test_forwards_model_tokens_to_speech_session(self) -> None:
+        async def fake_stream(*args, **kwargs):
+            yield {
+                "type": "messages",
+                "data": (
+                    SimpleNamespace(text="语音内容。"),
+                    {"langgraph_node": "call_model"},
+                ),
+            }
+
+        speech_session = SimpleNamespace(
+            feed_text=AsyncMock(),
+            finish=AsyncMock(),
+            stop=AsyncMock(),
+        )
+
+        with (
+            patch("services.ai.get_chat_model"),
+            patch.object(ai_graph, "astream", new=fake_stream),
+        ):
+            events = [
+                event
+                async for event in AIService.stream_chat(
+                    "问题",
+                    speech_session,  # type: ignore[arg-type]
+                )
+            ]
+
+        speech_session.feed_text.assert_awaited_once_with("语音内容。")
+        speech_session.finish.assert_awaited_once_with()
+        speech_session.stop.assert_not_awaited()
+        self.assertIn('"delta":"语音内容。"', "".join(events))
+
     async def test_streams_safe_error_event_when_model_fails(self) -> None:
         async def failing_stream(*args, **kwargs):
             if False:

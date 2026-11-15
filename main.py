@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from core.config import settings
+from core.dashscope import close_dashscope, init_dashscope
 from core.database import engine
 from core.elasticsearch import close_elasticsearch, init_elasticsearch
 from core.embedding import close_embedding, init_embedding
@@ -16,6 +17,7 @@ from routers.auth import router as auth_router
 from routers.document import router as document_router
 from routers.document_content import router as document_content_router
 from routers.search import router as search_router
+from routers.speech import router as speech_router
 from routers.user import router as user_router
 from services.document_index_worker import (
     close_document_index_worker,
@@ -53,12 +55,16 @@ async def lifespan(app: FastAPI):
         # 测试 Embedding 服务
         await init_embedding(app)
 
+        # 初始化 DashScope 客户端；未配置 API Key 时保持禁用
+        await init_dashscope(app)
+
         # 启动文档索引后台任务
         await init_document_index_worker(app)
 
         yield
     finally:
         await close_document_index_worker(app)
+        await close_dashscope()
         await close_embedding()
         await close_elasticsearch()
         await close_rustfs()
@@ -81,6 +87,7 @@ app.include_router(ai_router)
 app.include_router(document_router)
 app.include_router(document_content_router)
 app.include_router(search_router)
+app.include_router(speech_router)
 app.include_router(user_router)
 
 

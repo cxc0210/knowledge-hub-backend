@@ -27,6 +27,19 @@ class Settings(BaseSettings):
     llm_model: str = ""
     llm_temperature: float = 0
     llm_timeout_seconds: float = 120
+    dashscope_api_key: SecretStr = SecretStr("")
+    dashscope_base_url: str = "https://dashscope.aliyuncs.com/api/v1"
+    dashscope_asr_model: str = "qwen-audio-3.1-asr-flash"
+    dashscope_asr_timeout_seconds: float = 120
+    dashscope_asr_max_file_size_bytes: int = 20 * 1024 * 1024
+    dashscope_tts_websocket_url: str = ""
+    dashscope_tts_model: str = "qwen-audio-3.1-tts-flash"
+    dashscope_tts_voice: str = "longanlingxin_v3.1"
+    dashscope_tts_sample_rate: int = 24_000
+    dashscope_tts_volume: int = 50
+    dashscope_tts_rate: float = 1.0
+    dashscope_tts_pitch: float = 1.0
+    dashscope_tts_connect_timeout_seconds: float = 10
     rustfs_endpoint: str
     rustfs_access_key: SecretStr
     rustfs_secret_key: SecretStr

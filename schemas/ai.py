@@ -1,4 +1,5 @@
 from typing import Annotated
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, StringConstraints
 
@@ -10,6 +11,8 @@ Prompt = Annotated[
 
 class AIChatRequest(BaseModel):
     prompt: Prompt
+    request_id: UUID | None = None
+    tts_enabled: bool = False
 
     model_config = ConfigDict(extra="forbid")
 
