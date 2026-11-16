@@ -1,7 +1,9 @@
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+
+from schemas.rag import RAGSource
 
 Prompt = Annotated[
     str,
@@ -19,3 +21,4 @@ class AIChatRequest(BaseModel):
 
 class AIChatResponse(BaseModel):
     answer: str
+    sources: list[RAGSource] = Field(default_factory=list)

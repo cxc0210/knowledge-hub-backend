@@ -9,12 +9,13 @@ from uuid import uuid4
 from langchain_core.messages import HumanMessage
 
 from core.llm import get_chat_model
-from graphs.ai import ai_graph
 from graphs.context import AgentContext
+from graphs.main import main_graph
 from schemas.ai import AIChatResponse
 from services.tts_session import SpeechStreamSession
 
 logger = logging.getLogger(__name__)
+OUTPUT_NODES = {"call_model", "generate_answer"}
 
 
 def _ui_message_chunk(data: Mapping[str, Any]) -> str:
@@ -29,11 +30,14 @@ def _ui_message_done() -> str:
 class AIService:
     @staticmethod
     async def chat(prompt: str, agent_context: AgentContext) -> AIChatResponse:
-        result = await ai_graph.ainvoke(
+        result = await main_graph.ainvoke(
             {"messages": [HumanMessage(content=prompt)]},
             context=agent_context,
         )
-        return AIChatResponse(answer=result["messages"][-1].text)
+        return AIChatResponse(
+            answer=result["messages"][-1].text,
+            sources=result.get("sources", []),
+        )
 
     @staticmethod
     def stream_chat(
@@ -57,10 +61,11 @@ class AIService:
         yield _ui_message_chunk({"type": "text-start", "id": text_id})
 
         try:
-            async for part in ai_graph.astream(
+            async for part in main_graph.astream(
                 {"messages": [HumanMessage(content=prompt)]},
                 context=agent_context,
                 stream_mode=["messages", "custom"],
+                subgraphs=True,
                 version="v2",
             ):
                 if part["type"] == "custom":
@@ -78,13 +83,25 @@ class AIService:
                                 "data": action_data,
                             }
                         )
+                    elif (
+                        isinstance(custom_event, dict)
+                        and custom_event.get("type") == "rag-sources"
+                        and isinstance(custom_event.get("data"), list)
+                    ):
+                        yield _ui_message_chunk(
+                            {
+                                "type": "data-rag-sources",
+                                "id": f"sources_{message_id}",
+                                "data": custom_event["data"],
+                            }
+                        )
                     continue
 
                 if part["type"] != "messages":
                     continue
 
                 message, metadata = part["data"]
-                if metadata.get("langgraph_node") != "call_model":
+                if metadata.get("langgraph_node") not in OUTPUT_NODES:
                     continue
 
                 content = message.text

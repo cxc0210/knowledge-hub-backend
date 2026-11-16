@@ -31,7 +31,7 @@ async def call_model(state: MessagesState) -> dict[str, list[object]]:
     return {"messages": [response]}
 
 
-ai_graph = (
+agent_graph = (
     StateGraph(MessagesState, context_schema=AgentContext)
     .add_node("call_model", call_model)
     .add_node(
@@ -44,5 +44,8 @@ ai_graph = (
     .add_edge(START, "call_model")
     .add_conditional_edges("call_model", tools_condition)
     .add_edge("tools", "call_model")
-    .compile()
+    .compile(name="agent_graph")
 )
+
+# 保留旧名称，避免现有调用方和测试在迁移期间失效。
+ai_graph = agent_graph

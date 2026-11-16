@@ -16,6 +16,13 @@ class Settings(BaseSettings):
     embedding_dimension: int = 1024
     embedding_batch_size: int = 16
     embedding_timeout_seconds: float = 120
+    rag_keyword_top_k: int = 30
+    rag_vector_top_k: int = 30
+    rag_fusion_top_k: int = 20
+    rag_rrf_k: int = 60
+    rag_rerank_top_k: int = 8
+    rag_context_max_chars: int = 12_000
+    rag_rerank_content_max_chars: int = 1_200
     document_chunk_target_chars: int = 800
     document_chunk_max_chars: int = 1200
     document_chunk_min_chars: int = 200

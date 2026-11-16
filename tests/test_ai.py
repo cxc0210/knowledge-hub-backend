@@ -11,6 +11,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 from enums.ai_action import AIActionStatus, AIActionType
 from graphs.ai import ai_graph
 from graphs.context import AgentContext
+from graphs.main import main_graph
 from schemas.ai_action import EmailActionResponse
 from services.ai import AIService
 
@@ -120,7 +121,7 @@ class AIGraphTests(IsolatedAsyncioTestCase):
 class AIServiceTests(IsolatedAsyncioTestCase):
     async def test_returns_api_response(self) -> None:
         with patch.object(
-            ai_graph,
+            main_graph,
             "ainvoke",
             new=AsyncMock(
                 return_value={"messages": [AIMessage(content="答案")]}
@@ -139,6 +140,7 @@ class AIServiceTests(IsolatedAsyncioTestCase):
             self.assertEqual(messages[-1].text, "问题")
             self.assertEqual(kwargs["context"], TEST_CONTEXT)
             self.assertEqual(kwargs["stream_mode"], ["messages", "custom"])
+            self.assertTrue(kwargs["subgraphs"])
             self.assertEqual(kwargs["version"], "v2")
             yield {
                 "type": "messages",
@@ -164,7 +166,7 @@ class AIServiceTests(IsolatedAsyncioTestCase):
                     SimpleNamespace(hex="text-id"),
                 ],
             ),
-            patch.object(ai_graph, "astream", new=fake_stream),
+            patch.object(main_graph, "astream", new=fake_stream),
         ):
             events = [
                 event
@@ -207,7 +209,7 @@ class AIServiceTests(IsolatedAsyncioTestCase):
 
         with (
             patch("services.ai.get_chat_model"),
-            patch.object(ai_graph, "astream", new=fake_stream),
+            patch.object(main_graph, "astream", new=fake_stream),
         ):
             events = [
                 event
@@ -222,6 +224,48 @@ class AIServiceTests(IsolatedAsyncioTestCase):
             "".join(events),
         )
         self.assertIn(action_data["id"], "".join(events))
+
+    async def test_streams_rag_sources_and_answer_text(self) -> None:
+        sources = [
+            {
+                "document_id": 100001,
+                "chunk_id": "100001:v1:0",
+                "title": "事务指南",
+                "heading": "事务管理",
+            }
+        ]
+
+        async def fake_stream(*args, **kwargs):
+            yield {
+                "type": "custom",
+                "data": {
+                    "type": "rag-sources",
+                    "data": sources,
+                },
+            }
+            yield {
+                "type": "messages",
+                "data": (
+                    SimpleNamespace(text="知识库答案"),
+                    {"langgraph_node": "generate_answer"},
+                ),
+            }
+
+        with (
+            patch("services.ai.get_chat_model"),
+            patch.object(main_graph, "astream", new=fake_stream),
+        ):
+            events = [
+                event
+                async for event in AIService.stream_chat(
+                    "事务怎么管理？",
+                    TEST_CONTEXT,
+                )
+            ]
+
+        payload = "".join(events)
+        self.assertIn('"type":"data-rag-sources"', payload)
+        self.assertIn('"delta":"知识库答案"', payload)
 
     async def test_forwards_only_model_text_to_speech_session(self) -> None:
         async def fake_stream(*args, **kwargs):
@@ -248,7 +292,7 @@ class AIServiceTests(IsolatedAsyncioTestCase):
 
         with (
             patch("services.ai.get_chat_model"),
-            patch.object(ai_graph, "astream", new=fake_stream),
+            patch.object(main_graph, "astream", new=fake_stream),
         ):
             events = [
                 event
@@ -279,7 +323,7 @@ class AIServiceTests(IsolatedAsyncioTestCase):
                     SimpleNamespace(hex="text-id"),
                 ],
             ),
-            patch.object(ai_graph, "astream", new=failing_stream),
+            patch.object(main_graph, "astream", new=failing_stream),
             self.assertLogs("services.ai", level="ERROR"),
         ):
             events = [
