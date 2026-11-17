@@ -1,7 +1,7 @@
 import asyncio
 import json
 import logging
-from collections.abc import AsyncIterator, Mapping
+from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
 from contextlib import suppress
 from typing import Any
 from uuid import uuid4
@@ -16,6 +16,10 @@ from services.tts_session import SpeechStreamSession
 
 logger = logging.getLogger(__name__)
 OUTPUT_NODES = {"call_model", "generate_answer"}
+StreamCompleteCallback = Callable[
+    [str, list[dict[str, Any]]],
+    Awaitable[None],
+]
 
 
 def _ui_message_chunk(data: Mapping[str, Any]) -> str:
@@ -44,17 +48,27 @@ class AIService:
         prompt: str,
         agent_context: AgentContext,
         speech_session: SpeechStreamSession | None = None,
+        *,
+        on_complete: StreamCompleteCallback | None = None,
     ) -> AsyncIterator[str]:
         get_chat_model()
-        return AIService._stream_chat(prompt, agent_context, speech_session)
+        return AIService._stream_chat(
+            prompt,
+            agent_context,
+            speech_session,
+            on_complete,
+        )
 
     @staticmethod
     async def _stream_chat(
         prompt: str,
         agent_context: AgentContext,
         speech_session: SpeechStreamSession | None,
+        on_complete: StreamCompleteCallback | None,
     ) -> AsyncIterator[str]:
         active_speech_session = speech_session
+        answer_parts: list[str] = []
+        rag_sources: list[dict[str, Any]] = []
         message_id = f"msg_{uuid4().hex}"
         text_id = f"text_{uuid4().hex}"
         yield _ui_message_chunk({"type": "start", "messageId": message_id})
@@ -88,6 +102,7 @@ class AIService:
                         and custom_event.get("type") == "rag-sources"
                         and isinstance(custom_event.get("data"), list)
                     ):
+                        rag_sources = custom_event["data"]
                         yield _ui_message_chunk(
                             {
                                 "type": "data-rag-sources",
@@ -106,6 +121,7 @@ class AIService:
 
                 content = message.text
                 if content:
+                    answer_parts.append(content)
                     if active_speech_session is not None:
                         try:
                             await active_speech_session.feed_text(content)
@@ -127,6 +143,14 @@ class AIService:
                     await active_speech_session.finish()
                 except Exception:
                     logger.exception("TTS finalization failed; text stream continues")
+
+            if on_complete is not None and answer_parts:
+                try:
+                    await on_complete("".join(answer_parts), rag_sources)
+                except Exception:
+                    logger.exception(
+                        "Persisting streamed AI answer failed; stream continues"
+                    )
 
             yield _ui_message_chunk({"type": "text-end", "id": text_id})
             yield _ui_message_chunk({"type": "finish", "finishReason": "stop"})

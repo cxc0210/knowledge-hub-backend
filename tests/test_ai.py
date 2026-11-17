@@ -123,9 +123,7 @@ class AIServiceTests(IsolatedAsyncioTestCase):
         with patch.object(
             main_graph,
             "ainvoke",
-            new=AsyncMock(
-                return_value={"messages": [AIMessage(content="答案")]}
-            ),
+            new=AsyncMock(return_value={"messages": [AIMessage(content="答案")]}),
         ) as invoke:
             result = await AIService.chat("问题", TEST_CONTEXT)
 
@@ -188,6 +186,50 @@ class AIServiceTests(IsolatedAsyncioTestCase):
                 "data: [DONE]\n\n",
             ],
         )
+
+    async def test_reports_complete_streamed_answer_and_sources(self) -> None:
+        sources = [{"document_id": 100001, "chunk_id": "chunk-1"}]
+
+        async def fake_stream(*args, **kwargs):
+            yield {
+                "type": "custom",
+                "data": {
+                    "type": "rag-sources",
+                    "data": sources,
+                },
+            }
+            yield {
+                "type": "messages",
+                "data": (
+                    SimpleNamespace(text="完整"),
+                    {"langgraph_node": "generate_answer"},
+                ),
+            }
+            yield {
+                "type": "messages",
+                "data": (
+                    SimpleNamespace(text="答案"),
+                    {"langgraph_node": "generate_answer"},
+                ),
+            }
+
+        on_complete = AsyncMock()
+        with (
+            patch("services.ai.get_chat_model"),
+            patch.object(main_graph, "astream", new=fake_stream),
+        ):
+            events = [
+                event
+                async for event in AIService.stream_chat(
+                    "问题",
+                    TEST_CONTEXT,
+                    on_complete=on_complete,
+                )
+            ]
+
+        on_complete.assert_awaited_once_with("完整答案", sources)
+        self.assertIn('"delta":"完整"', "".join(events))
+        self.assertIn('"delta":"答案"', "".join(events))
 
     async def test_streams_email_approval_as_data_part(self) -> None:
         action_data = {
